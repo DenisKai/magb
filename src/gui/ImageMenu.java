@@ -1,5 +1,6 @@
 package gui;
 
+import imageprocessing.BinaryValue;
 import imageprocessing.grayValueConverter.GrayValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MenuItem;
@@ -27,6 +28,7 @@ public class ImageMenu extends UserMenu {
 		add("C&ropping\tCtrl+R", 								SWT.CTRL | 'R', new Cropping());
 		add("&Invert\tF1", 										SWT.F1, 		new Inverter());
 		add("&Grayscaler\tF2", SWT.F2, new GrayValue());
+		add("&Binary\tF3", SWT.F3, new BinaryValue());
 
 		UserMenu channels = addMenu("Channel");		
 		channels.add("R\tCtrl+1", 								SWT.CTRL | '1', new ChannelRGBA(0));

@@ -1,6 +1,7 @@
 package imageprocessing.grayValueConverter;
 
 import imageprocessing.IImageProcessor;
+import imageprocessing.ImageProcessing;
 import main.Picsi;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.PaletteData;
@@ -29,6 +30,16 @@ public class GrayValue implements IImageProcessor {
         }
 
         ImageData grayScale = new ImageData(outData.width, outData.height, 8, new PaletteData(colors));
+
+        // use this -v
+        ImageData gray = ImageProcessing.createImage(1,1,Picsi.IMAGE_TYPE_GRAY);
+
+        // use to get pixel data
+        // outData.palette.getRGB(outData.getPixel(u, v));
+
+        // to convert to byte
+        // ImageProcessing.clamp8(intensity);
+        // then you can call outData.setPixel(u, v, <clamp>)
 
         Parallel.For(0, outData.height, v -> {
             for (int u = 0; u < outData.width; u++) {

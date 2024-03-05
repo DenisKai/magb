@@ -6,7 +6,7 @@ import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.PaletteData;
 import org.eclipse.swt.graphics.RGB;
 
-public class BinaryValue implements IImageProcessor {
+public class Dithering implements IImageProcessor {
     @Override
     public boolean isEnabled(int imageType) {
         return (
@@ -46,6 +46,7 @@ public class BinaryValue implements IImageProcessor {
             int error = (intensity < 128) ? 0 : 255;
             int binaryVal = (intensity < 128) ? 1 : 0;
             prevError = intensity - error;
+            // better error: diff = gray (pixelvalue) - 255*binaryVal
 
             binary.data[i] = (byte) binaryVal;
         }

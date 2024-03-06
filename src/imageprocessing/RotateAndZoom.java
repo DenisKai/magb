@@ -20,11 +20,18 @@ public class RotateAndZoom implements IImageProcessor {
     public ImageData run(ImageData inData, int imageType) {
         float a = OptionPane.showFloatDialog("Rotation (GUZS)?", 45.0f);
         float z = OptionPane.showFloatDialog("Zoom?", 1.0f);
-        return zoom(Rotation.basicRotation(inData, a, imageType), z, imageType);
+        return transform(Rotation.basicRotation(inData, a, imageType), z);
     }
 
-    public static ImageData zoom(ImageData in, float scale, int imageType) {
+    public static ImageData transform(ImageData in, float scale) {
         ImageData out = (ImageData) in.clone();
+
+        double[][] translation = {
+                {1, 0, -out.width / 2},
+                {0, 1, -out.height / 2},
+                {0, 0, 1}
+        };
+        Matrix center_tranM = new Matrix(translation);
 
         double[][] scaling = {
                 {(double) scale, 0, 0},
@@ -32,6 +39,16 @@ public class RotateAndZoom implements IImageProcessor {
                 {0, 0, 1}
         };
         Matrix scalingM = new Matrix(scaling);
+
+        double[][] topLeft = {
+                {1, 0, out.width / 2},
+                {0, 1, out.height / 2},
+                {0, 0, 1}
+        };
+        Matrix topLeft_tranM = new Matrix(topLeft);
+
+        Matrix transformation = topLeft_tranM.multiply(scalingM).multiply(center_tranM);
+        Matrix inverseScaling = transformation.inverse();
 
         Parallel.For(0, out.height, v -> {
             for (int u = 0; u < out.width; u++) {
@@ -42,11 +59,12 @@ public class RotateAndZoom implements IImageProcessor {
                 };
                 Matrix inputM = new Matrix(input);
 
-                Matrix projection = scalingM.multiply(inputM);
-                int proj_u = (int) projection.el(0,0);
-                int proj_v = (int) projection.el(1,0);
+                //nearest neighbour
+                Matrix source = inverseScaling.multiply(inputM);
+                int src_u = (int) source.el(0, 0);
+                int src_v = (int) source.el(1, 0);
 
-
+                out.setPixel(u, v, in.getPixel(src_u, src_v));
             }
         });
 

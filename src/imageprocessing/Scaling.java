@@ -6,7 +6,7 @@ import org.eclipse.swt.graphics.ImageData;
 import utils.Matrix;
 import utils.Parallel;
 
-public class StaticScaling implements IImageProcessor {
+public class Scaling implements IImageProcessor {
     @Override
     public boolean isEnabled(int imageType) {
         return true;
@@ -21,15 +21,8 @@ public class StaticScaling implements IImageProcessor {
         return scale(inData, z, m);
     }
 
-    public static ImageData scale(ImageData in, float scale,int option) {
-        ImageData out = (ImageData) in.clone();
-
-        double[][] translation = {
-                {1, 0, -out.width / 2},
-                {0, 1, -out.height / 2},
-                {0, 0, 1}
-        };
-        Matrix center_tranM = new Matrix(translation);
+    public static ImageData scale(ImageData in, float scale, int option) {
+        ImageData out = ImageProcessing.createImage((int) Math.floor(in.width * scale), (int) Math.floor(in.height * scale), ImageProcessing.determineImageType(in));
 
         double[][] scaling = {
                 {(double) scale, 0, 0},
@@ -37,16 +30,7 @@ public class StaticScaling implements IImageProcessor {
                 {0, 0, 1}
         };
         Matrix scalingM = new Matrix(scaling);
-
-        double[][] topLeft = {
-                {1, 0, out.width / 2},
-                {0, 1, out.height / 2},
-                {0, 0, 1}
-        };
-        Matrix topLeft_tranM = new Matrix(topLeft);
-
-        Matrix transformation = topLeft_tranM.multiply(scalingM).multiply(center_tranM);
-        Matrix inverseScaling = transformation.inverse();
+        Matrix inverseScaling = scalingM.inverse();
 
         Parallel.For(0, out.height, v -> {
             for (int u = 0; u < out.width; u++) {
@@ -60,7 +44,7 @@ public class StaticScaling implements IImageProcessor {
                 //nearest neighbour
                 Matrix source = inverseScaling.multiply(inputM);
 
-                int intensity = 0;
+                int intensity = 255;
                 if (option == 1) {
                     intensity = bilinear(in, source);
                 } else {
@@ -76,18 +60,25 @@ public class StaticScaling implements IImageProcessor {
 
 
     private static int nearestNeighbour(ImageData in, Matrix source) {
-        int src_u = (int) source.el(0, 0);
-        int src_v = (int) source.el(1, 0);
+        int src_u = (int) ((Math.round(source.el(0, 0)) < in.width) ? Math.round(source.el(0, 0)) : Math.floor(source.el(0, 0)));
+        int src_v = (int) ((Math.round(source.el(1, 0)) < in.width) ? Math.round(source.el(1, 0)) : Math.floor(source.el(1, 0)));
 
         return in.getPixel(src_u, src_v);
     }
 
     private static int bilinear(ImageData in, Matrix source) {
         int A, B, C, D = 0;
-        A = in.getPixel((int) Math.floor(source.el(0, 0)), (int) Math.floor(source.el(1, 0)));
-        B = in.getPixel((int) Math.ceil(source.el(0, 0)), (int) Math.floor(source.el(1, 0)));
-        C = in.getPixel((int) Math.floor(source.el(0, 0)), (int) Math.ceil(source.el(1, 0)));
-        D = in.getPixel((int) Math.ceil(source.el(0, 0)), (int) Math.ceil(source.el(1, 0)));
+        int u0 = (int) Math.floor(source.el(0, 0));
+        int v0 = (int) Math.floor(source.el(1, 0));
+        // B and D get IllegalArgumentException
+        // because getting corner pixels in original picture can lead rounding to OutOfBounds
+        int u0_1 = (u0 + 1 < in.width) ? u0 + 1 : u0;
+        int v0_1 = (v0 + 1 < in.width) ? v0 + 1 : v0;
+
+        A = in.getPixel(u0, v0);
+        B = in.getPixel(u0_1, v0);
+        C = in.getPixel(u0, v0_1);
+        D = in.getPixel(u0_1, v0_1);
 
         int a, b = 0;
         a = (int) (source.el(0, 0) - Math.floor(source.el(0, 0)));

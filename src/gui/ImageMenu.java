@@ -4,7 +4,7 @@ import imageprocessing.Cropping;
 import imageprocessing.Dithering;
 import imageprocessing.RotateAndZoom;
 import imageprocessing.Rotation;
-import imageprocessing.StaticScaling;
+import imageprocessing.Scaling;
 import imageprocessing.colors.ChannelRGBA;
 import imageprocessing.colors.Inverter;
 import imageprocessing.grayValueConverter.GrayValue;
@@ -34,7 +34,7 @@ public class ImageMenu extends UserMenu {
         add("&Binary\tF3", SWT.F3, new Dithering());
         add("&Rotation\tF4", SWT.F4, new Rotation());
         add("&Rotate and Zoom\tF5", SWT.F5, new RotateAndZoom());
-        add("&Static Scaling\tF6", SWT.F6, new StaticScaling());
+        add("&Static Scaling\tF6", SWT.F6, new Scaling());
 
         UserMenu channels = addMenu("Channel");
         channels.add("R\tCtrl+1", SWT.CTRL | '1', new ChannelRGBA(0));

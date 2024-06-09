@@ -2,8 +2,8 @@ package gui;
 
 import imageprocessing.Binarization;
 import imageprocessing.Cropping;
-import imageprocessing.Dithering;
 import imageprocessing.FloodFilling;
+import imageprocessing.MorphologicFilter;
 import imageprocessing.RotateAndZoom;
 import imageprocessing.Rotation;
 import imageprocessing.Scaling;
@@ -40,6 +40,7 @@ public class ImageMenu extends UserMenu {
         add("&Rotate and Zoom\tF5", SWT.F5, new RotateAndZoom());
         add("&Static Scaling\tF6", SWT.F6, new Scaling());
         add("&Floodfill\tF7", SWT.F7, new FloodFilling());
+        add("&Morphological\tF8", SWT.F8, new MorphologicFilter());
 
         UserMenu channels = addMenu("Channel");
         channels.add("R\tCtrl+1", SWT.CTRL | '1', new ChannelRGBA(0));

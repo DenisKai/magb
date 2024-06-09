@@ -1,12 +1,13 @@
 package imageprocessing;
 
-import imageprocessing.grayValueConverter.GrayValue;
 import main.Picsi;
 import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.internal.C;
 
 import java.awt.*;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Random;
 
 /**
  * Flood Filling
@@ -24,13 +25,12 @@ public class FloodFilling implements IImageProcessor {
 
     @Override
     public ImageData run(ImageData input, int imageType) {
-        ImageData grayData = GrayValue.extractGrayValue(input);
-        final int threshold = Binarization.otsuThreshold(grayData);
+        final int threshold = Binarization.otsuThreshold(input);
 
-        ImageData binary = Binarization.binarize(grayData, threshold, false, true);
+        ImageData binary = Binarization.binarize(input, threshold, false, false);
 
         int nLabels = floodFill(binary);
-        System.out.println("Anzahl Mnzen: " + nLabels);
+        System.out.println("Anzahl Muenzen: " + nLabels);
 
         return falseColor(binary, nLabels + 2);
     }
@@ -45,48 +45,58 @@ public class FloodFilling implements IImageProcessor {
         assert ImageProcessing.determineImageType(imageData) == Picsi.IMAGE_TYPE_GRAY;
 
         int m = 2; // label number/value of pixel
-        boolean particle_flag = false;
+
+        boolean[][] visited = new boolean[imageData.width][imageData.height];
         Queue<Point> queue = new LinkedList<>();
-        queue.add(new Point(0, 0));
 
-        // TODO
-        for (int u = 0; u < imageData.width; u++) {
-            for (int v = 0; v < imageData.height; v++) {
+        int[] neighbour_x = {1, -1, 0, 0};
+        int[] neighbour_y = {0, 0, 1, -1};
 
-                if (imageData.getPixel(u, v) == 1) {    //add to queue
+        for (int v = 0; v < imageData.height; v++) {
+            for (int u = 0; u < imageData.width; u++) {
+                if (imageData.getPixel(u, v) == s_foreground && !visited[u][v]) {    //add Vordergrund to queue
                     queue.add(new Point(u, v));
-                }
+                    visited[u][v] = true;
 
-                while(!queue.isEmpty()) {
-                    particle_flag = true;
-                    Point point = queue.poll();
-                    int x = point.x;
-                    int y = point.y;
+                    while (!queue.isEmpty()) {
+                        Point point = queue.poll();
+                        int x = point.x;
+                        int y = point.y;
 
-                    if (x < 0 || x >= imageData.width || y < 0 || y >= imageData.height) {
-                        continue;
+                        imageData.setPixel(x, y, m);
+
+                        // add neighbours
+                        for (int i = 0; i < 4; i++) {
+                            int x_n = x + neighbour_x[i];
+                            int y_n = y + neighbour_y[i];
+
+                            if (x_n >= 0 &&
+                                    x_n < imageData.width &&
+                                    y_n >= 0 &&
+                                    y_n < imageData.height &&
+                                    !visited[x_n][y_n] &&
+                                    imageData.getPixel(x_n, y_n) == s_foreground) {
+                                queue.add(new Point(x_n, y_n));
+                                visited[x_n][y_n] = true;
+                            }
+                        }
                     }
 
-                    if (imageData.getPixel(x, y) != 1) {
-                        continue; // Ignore points that are not the target color
-                    }
-
-                    imageData.setPixel(x, y, m);
-
-                    // add neighbours
-                    queue.add(new Point(x + 1, y)); //right
-                    queue.add(new Point(x, y + 1)); //lower
-                    queue.add(new Point(x - 1, y)); //left
-                    queue.add(new Point(x, y - 1)); //upper
-                }
-
-                if (particle_flag) {
                     m++;
                 }
             }
         }
 
-        return m;
+        // Background has to be white -> 255 in grayscale
+        for (int v = 0; v < imageData.height; v++) {
+            for (int u = 0; u < imageData.width; u++) {
+                if (!visited[u][v]) {
+                    imageData.setPixel(u, v, 255);
+                }
+            }
+        }
+
+        return m - 2;   // -2 not counting background and foreground
     }
 
     /**
@@ -100,8 +110,32 @@ public class FloodFilling implements IImageProcessor {
         assert ImageProcessing.determineImageType(inData) == Picsi.IMAGE_TYPE_GRAY;
         assert 0 < n && n <= 256;
 
-        // TODO
+        ImageData outData = ImageProcessing.createImage(inData.width, inData.height, Picsi.IMAGE_TYPE_RGB);
 
-        return null;
+        Random random = new Random();
+        Color[] colors = new Color[n];
+        colors[0] = Color.WHITE;    // background
+        colors[1] = Color.BLACK;    // foreground (shouldn't exist -> all labeled
+
+        for (int i = 2; i < n; i++) {
+            colors[i] = new Color(
+                    random.nextInt(256),
+                    random.nextInt(256),
+                    random.nextInt(256));
+        }
+
+
+        for (int v = 0; v < inData.height; v++) {
+            for (int u = 0; u < inData.width; u++) {
+                int value = inData.getPixel(u, v);
+                if(value != 255) {  // all non-Background pixels will be colored
+                    outData.setPixel(u, v, colors[value].getRGB());
+                } else {
+                    outData.setPixel(u, v, Color.WHITE.getRGB());
+                }
+            }
+        }
+
+        return outData;
     }
 }

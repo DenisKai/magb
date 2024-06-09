@@ -23,7 +23,6 @@ public class Binarization implements IImageProcessor {
 	@Override
 	public ImageData run(ImageData inData, int imageType) {
 		final int threshold = otsuThreshold(inData);
-		System.out.println(threshold);
 
 		return binarize(inData, threshold, false, true);
 	}
@@ -62,55 +61,38 @@ public class Binarization implements IImageProcessor {
 		int threshold = 0; // Schwellwert
 		double max_varianz = 0;
 
+
+		float total_intensity = 0;
 		for (int t = 0; t < histogram.length; t++) {
-			int i;
-			float prob_p0 = 0;
-			float prob_p1 = 0;
-			float mu_0 = 0;
-			float mu_1 = 0;
+			total_intensity += t * histogram[t];
+		}
 
-			for (i = 0; i <= t; i++) {
-				float pi = (float) histogram[i] / n;
-				prob_p0 += pi;
-				mu_0 += i * pi;
-			}
+		float intensity_b = 0; // Kumultative Hintergrund-Intensität
+		float weight_p0 = 0; // Kumultative Wahrscheinlichkeit p_i des Hintergrundes
+		float weight_p1 = 0; // Kumultative Wahrscheinlichkeit p_i des Vordergrunds (1 - p0)
 
-			for (int j = i + 1; j < histogram.length; j++) {
-				float pi = (float) histogram[j] / n;
-				prob_p1 += pi;
-				mu_1 += i * pi;
-			}
+		for (int t = 0; t < histogram.length; t++) {
+			weight_p0 += histogram[t];
+			if (weight_p0 == 0) continue;
 
-			mu_0 = mu_0 / prob_p0;
-			mu_1 = mu_1 / prob_p1;
-			float mu = prob_p0 * mu_0 + prob_p1 * mu_1;
+			weight_p1 = n - weight_p0;
+			if (weight_p1 == 0) break;
 
-			float var_0 = 0;
-			float var_1 = 0;
+			intensity_b += (float) (t * histogram[t]);
 
-			for (i = 0; i <= t; i++) {
-				float pi = (float) histogram[i] / n;
-				var_0 += pi * (i - mu_0) * (i - mu_0);
-			}
+			float mu_0 = intensity_b / weight_p0;
+			float mu_1 = (total_intensity - intensity_b) / weight_p1;
 
-			for (int j = i + 1; j < histogram.length; j++) {
-				float pi = (float) histogram[j] / n;
-				var_1 += pi * (i - mu_1) * (i - mu_1);
-			}
+			float o_inter = weight_p0 * weight_p1 * (mu_0 - mu_1) * (mu_0 - mu_1);
 
-			// inTRAklassenvarianz
-			float o_intra = var_0 * prob_p0 + var_1 * prob_p1;
-
-			// inTERklassenvarianz
-			float o_inter = (mu_0 - mu) * (mu_0 - mu) * prob_p0 + (mu_1 - mu) * (mu_1 - mu) * prob_p1;
-
+			// Interklassenvarianz maximiert == Intraklassenvarianz minimiert
 			if (o_inter > max_varianz) {
 				max_varianz = o_inter;
 				threshold = t;
 			}
 		}
 
-		System.out.println(threshold);
+		System.out.printf("Otsu threshold is: %s%n", threshold);
 		return threshold;
 	}
 }

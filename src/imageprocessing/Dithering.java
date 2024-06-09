@@ -27,30 +27,51 @@ public class Dithering implements IImageProcessor {
         return binarize(out);
     }
 
-    public static ImageData binarize(ImageData out) {
+    public static ImageData binarize(ImageData outData) {
         RGB[] rgb = new RGB[2];
         rgb[0] = new RGB(255, 255, 255);    //white
         rgb[1] = new RGB(0, 0, 0);          //black
 
         ImageData binary = new ImageData(
-                out.width,
-                out.height,
+                outData.width,
+                outData.height,
                 8,
                 new PaletteData(rgb)
         );
 
-        int prevError = 0;
-        for (int i = 0; i < out.data.length; i++) {
-            int intensity = (out.data[i] & 0xFF) + prevError;
+        for (int u = 0; u < outData.width; u++) {
+            for (int v = 0; v < outData.height; v++) {
+                int oldVal = outData.getPixel(u, v);
+                int newVal = (oldVal < 128) ? 0 : 255;
+                int error = oldVal - newVal;
 
-            int error = (intensity < 128) ? 0 : 255;
-            int binaryVal = (intensity < 128) ? 1 : 0;
-            prevError = intensity - error;
-            // better error: diff = gray (pixelvalue) - 255*binaryVal
+                // Verteilung error auf Nachbarn
+                //       (x)    7/16
+                //  3/16  5/16  1/16
+                if (u + 1 < outData.width) {
+                    int tN = outData.getPixel(u + 1, v);
+                    outData.setPixel(u + 1, v, tN + (error * 7) / 16);
+                }
 
-            binary.data[i] = (byte) binaryVal;
+                if (u + 1 < outData.width && v + 1 < outData.height) {
+                    int tN = outData.getPixel(u + 1, v + 1);
+                    outData.setPixel(u + 1, v + 1, tN + error / 16);
+                }
+
+                if (v + 1 < outData.height) {
+                    int tN = outData.getPixel(u, v + 1);
+                    outData.setPixel(u, v + 1, tN + (error * 5) / 16);
+                }
+
+                if (u - 1 >= 0) {
+                    int tN = outData.getPixel(u - 1, v);
+                    outData.setPixel(u - 1, v, tN + (error * 3) / 16);
+                }
+
+                outData.setPixel(u, v, newVal);
+            }
         }
 
-        return binary;
+        return outData;
     }
 }

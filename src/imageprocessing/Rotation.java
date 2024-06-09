@@ -20,11 +20,19 @@ public class Rotation implements IImageProcessor {
         return basicRotation(inData, b, imageType);
     }
 
-    // Source to Target
+    // Target to source
     public static ImageData basicRotation(ImageData in, float a, int imageType) {
         ImageData copy = ImageProcessing.createImage(in.width, in.height, imageType);
         //convert to radians, counter clock wise
         a = (a % 360) * ((float) (Math.PI / 180));
+
+        //
+        final double alpha = Math.toRadians(a);
+
+        //new height width
+        //int nw = w.mathcos(a) + w.mathsin(a);
+        //int nh = h.mathsin(a) + w.mathcos(a);
+
 
         double[][] middle = {
                 {Math.ceil(copy.width / 2)},

@@ -16,7 +16,7 @@ public class Scaling implements IImageProcessor {
     public ImageData run(ImageData inData, int imageType) {
         Object[] methods = {"Nearest Neighbor", "Bilinear", "Bikubisch"};
         int m = OptionPane.showOptionDialog("Options", SWT.ICON_INFORMATION, methods, 0);
-        float z = OptionPane.showFloatDialog("Zoom?", 1.0f);
+        float z = OptionPane.showFloatDialog("Skalierung?", 1.0f);
 
         return scale(inData, z, m);
     }
@@ -40,8 +40,6 @@ public class Scaling implements IImageProcessor {
                         {1}
                 };
                 Matrix inputM = new Matrix(input);
-
-                //nearest neighbour
                 Matrix source = inverseScaling.multiply(inputM);
 
                 int intensity = 255;
@@ -70,6 +68,7 @@ public class Scaling implements IImageProcessor {
         int A, B, C, D = 0;
         int u0 = (int) Math.floor(source.el(0, 0));
         int v0 = (int) Math.floor(source.el(1, 0));
+
         // B and D get IllegalArgumentException
         // because getting corner pixels in original picture can lead rounding to OutOfBounds
         int u0_1 = (u0 + 1 < in.width) ? u0 + 1 : u0;

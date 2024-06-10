@@ -1,6 +1,7 @@
 package imageprocessing;
 
 import gui.OptionPane;
+import imageprocessing.colors.Inverter;
 import main.Picsi;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.ImageData;
@@ -68,7 +69,7 @@ public class MorphologicFilter implements IImageProcessor {
         if (ch < 0) return null;
 
         Object[] structure = {"None", "Dot", "Circle-3", "Circle-5", "Circle-7", "Diamond-5", "Diamond-7", "Square-2", "Square-3", "Square-4", "Square-5"};
-        int s = OptionPane.showOptionDialog("Structure", SWT.ICON_INFORMATION, structure, 2);
+        int s = OptionPane.showOptionDialog("Structure (ignored with outer contour)", SWT.ICON_INFORMATION, structure, 2);
         if (s < 0) return null;
         boolean[][] struct;
         int cx, cy;
@@ -270,13 +271,35 @@ public class MorphologicFilter implements IImageProcessor {
      * @return new closed binary image
      */
     public static ImageData contour(ImageData inData, boolean[][] struct, int cx, int cy, boolean inner) {
+        ImageData out = new ImageData(inData.width, inData.height, inData.depth, inData.palette);
+
         if (inner) {
-            // TODO
+            ImageData I_dash = erosion(inData, struct, cx, cy);
+            ImageData I_dash_complement = (ImageData) I_dash.clone();
+            Inverter.invert(I_dash_complement, out.type);
+
+            Parallel.For(0, inData.height, v -> {
+                for (int u = 0; u < inData.width; u++) {
+                    if (inData.getPixel(u, v) == I_dash_complement.getPixel(u, v)) {
+                        out.setPixel(u, v, 255);
+                    }
+                }
+            });
         } else {
-            // TODO
+            ImageData I_dash = dilation(inData, s_circle3, 1, 1);
+            ImageData I_complement = (ImageData) inData.clone();
+            Inverter.invert(I_complement, I_complement.type);
+
+            Parallel.For(0, I_complement.height, v -> {
+                for (int u = 0; u < I_complement.width; u++) {
+                    if (I_complement.getPixel(u, v) == I_dash.getPixel(u, v)) {
+                        out.setPixel(u, v, 255);
+                    }
+                }
+            });
         }
 
-        return null;
+        return out;
     }
 
 }

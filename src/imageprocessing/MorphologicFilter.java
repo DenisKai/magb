@@ -281,19 +281,19 @@ public class MorphologicFilter implements IImageProcessor {
             Parallel.For(0, inData.height, v -> {
                 for (int u = 0; u < inData.width; u++) {
                     if (inData.getPixel(u, v) == I_dash_complement.getPixel(u, v)) {
-                        out.setPixel(u, v, 255);
+                        out.setPixel(u, v, s_foreground);
                     }
                 }
             });
         } else {
-            ImageData I_dash = dilation(inData, s_circle3, 1, 1);
+            ImageData I_dash = dilation(inData, struct, cx, cy);
             ImageData I_complement = (ImageData) inData.clone();
             Inverter.invert(I_complement, I_complement.type);
 
             Parallel.For(0, I_complement.height, v -> {
                 for (int u = 0; u < I_complement.width; u++) {
                     if (I_complement.getPixel(u, v) == I_dash.getPixel(u, v)) {
-                        out.setPixel(u, v, 255);
+                        out.setPixel(u, v, s_foreground);
                     }
                 }
             });

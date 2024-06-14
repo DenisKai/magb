@@ -24,7 +24,7 @@ public class Binarization implements IImageProcessor {
 	public ImageData run(ImageData inData, int imageType) {
 		final int threshold = otsuThreshold(inData);
 
-		return binarize(inData, threshold, false, true);
+		return binarize(inData, threshold, true, true);
 	}
 
 	/**

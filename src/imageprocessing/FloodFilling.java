@@ -2,7 +2,6 @@ package imageprocessing;
 
 import main.Picsi;
 import org.eclipse.swt.graphics.ImageData;
-import org.eclipse.swt.internal.C;
 
 import java.awt.*;
 import java.util.LinkedList;
@@ -96,7 +95,7 @@ public class FloodFilling implements IImageProcessor {
             }
         }
 
-        return m - 2;   // -2 not counting background and foreground
+        return m - 2;   // -2 not counting background and 'default' foreground
     }
 
     /**
@@ -128,7 +127,7 @@ public class FloodFilling implements IImageProcessor {
         for (int v = 0; v < inData.height; v++) {
             for (int u = 0; u < inData.width; u++) {
                 int value = inData.getPixel(u, v);
-                if(value != 255) {  // all non-Background pixels will be colored
+                if (value != 255) {  // all non-Background pixels will be colored
                     outData.setPixel(u, v, colors[value].getRGB());
                 } else {
                     outData.setPixel(u, v, Color.WHITE.getRGB());

@@ -3,7 +3,9 @@ package gui;
 import imageprocessing.Binarization;
 import imageprocessing.Cropping;
 import imageprocessing.FloodFilling;
+import imageprocessing.HoughTransform;
 import imageprocessing.MorphologicFilter;
+import imageprocessing.ParticleAnalyzer;
 import imageprocessing.RotateAndZoom;
 import imageprocessing.Rotation;
 import imageprocessing.Scaling;
@@ -41,6 +43,8 @@ public class ImageMenu extends UserMenu {
         add("&Static Scaling\tF6", SWT.F6, new Scaling());
         add("&Floodfill\tF7", SWT.F7, new FloodFilling());
         add("&Morphological\tF8", SWT.F8, new MorphologicFilter());
+        add("&Houghtransform\tF9", SWT.F9, new HoughTransform());
+        add("&Particleanalyzer\tF10", SWT.F10, new ParticleAnalyzer());
 
         UserMenu channels = addMenu("Channel");
         channels.add("R\tCtrl+1", SWT.CTRL | '1', new ChannelRGBA(0));

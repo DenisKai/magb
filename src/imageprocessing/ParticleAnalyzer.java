@@ -44,6 +44,8 @@ public class ParticleAnalyzer implements IImageProcessor {
         int[] areas = new int[n_labels];
         Point[] centers = new Point[n_labels];
         double[] eccentricities = new double[n_labels];
+        int[] contours = new int[n_labels];
+        double[] orientations = new double[n_labels];
         for (int i = 0; i < n_labels; i++) {
             int[] geometric_moments = calculateMoments(labeled_image, i + 2);
             areas[i] = geometric_moments[0];
@@ -56,6 +58,12 @@ public class ParticleAnalyzer implements IImageProcessor {
             // Exzentrizität
             double[] centralMoments = calculateCentralMoments(labeled_image, i + 2, u_center, v_center);
             eccentricities[i] = calculateEccentricity(centralMoments);
+
+            // Kontur
+            contours[i] = calculateContour(labeled_image, i + 2);
+
+            // Orientation
+            orientations[i] = calculateOrientation(centralMoments[0], centralMoments[1], centralMoments[2]);
         }
 
         // Bounding box
@@ -69,23 +77,24 @@ public class ParticleAnalyzer implements IImageProcessor {
 
         String output_header =
                 """
-                        | Label | Schwerpunkt (u, v) | Bounding Box                  | Flaeche (px) | Exzentrizitaet |
-                        |       |                    | (u_min, v_min):(u_max, v_max) |              |                |
-                        |-------|--------------------|-------------------------------|--------------|----------------|""";
+                        | Label | Schwerpunkt (u, v) | Bounding Box                  | Flaeche (px) | Exzentrizitaet | Kontur (px)           | Orientierung |
+                        |       |                    | (u_min, v_min):(u_max, v_max) |              |                | (normal):(korrigiert) | (in Grad)    |
+                        |-------|--------------------|-------------------------------|--------------|----------------|-----------------------|--------------|""";
         System.out.println(output_header);
 
         for (int i = 0; i < n_labels; i++) {
             int l_center = String.format(" (%d,%d)", centers[i].x, centers[i].y).length();
             int l_bb = String.format("(%d,%d):(%d,%d)", bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y).length();
 
-            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s |\n",
+            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s | (%d):(%.2f) | %.4f |\n",
                     i + 2,
                     centers[i].x, centers[i].y, "",
                     bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y, "",
                     areas[i],
-                    eccentricities[i], "");
+                    eccentricities[i], "",
+                    contours[i], (float) contours[i] * 0.95,
+                    orientations[i]);
         }
-
 
         return out;
     }
@@ -154,14 +163,10 @@ public class ParticleAnalyzer implements IImageProcessor {
     }
 
     /**
-     * Exzentrizität e = sqrt(1 - (b^2 / a^2))
-     * Wobei
-     *  a = major axis
-     *  b = minor axis
+     * Exzentrizität e = [mu20 - mu02]^2 + 4[mu11]^2 / (mu20 + mu02)
+     * Zeigt an wie 'Ellipsisch' das Partikel ist. 0 = Rund, 1 = langgezogen.
      *
-     * Welche proportional zu den Wurzeln der Eigenwerten (Eigenvalues) sind.
-     *
-     * @param central_moments Array contianing the central moments: mu11, mu20 and mu02
+     * @param central_moments Array containing the central moments: mu11, mu20 and mu02
      * @return
      */
     private double calculateEccentricity(double[] central_moments) {
@@ -169,22 +174,16 @@ public class ParticleAnalyzer implements IImageProcessor {
         double mu20 = central_moments[1];
         double mu02 = central_moments[2];
 
-        double trace = mu20 + mu02;
-        double determinant = mu20 * mu02 - mu11 * mu11;
-        double sqrt = Math.sqrt((trace / 2.0) * (trace / 2.0) - determinant);
-        double eigenvalue1 = (trace / 2.0) + sqrt;
-        double eigenvalue2 = (trace / 2.0) - sqrt;
+        double e_upper_part = ((mu20 - mu02) * (mu20 - mu02)) + (4 * (mu11 * mu11));
+        double e_lower_part = (mu20 + mu02) * (mu20 + mu02);
 
-        double a = Math.sqrt(eigenvalue1);
-        double b = Math.sqrt(eigenvalue2);
-
-        return Math.sqrt(1 - (b * b) / (a * a));
+        return e_upper_part / e_lower_part;
     }
 
     /**
      * Determine bounding box by lowest point (upper left) and highest point (lower right)
      *
-     * @param inData labeled image
+     * @param inData   labeled image
      * @param label_no number of label which bounding box should be determined.
      * @return size 2 array, containing lowest (x,y) and highest (x,y) value/point
      */
@@ -223,6 +222,50 @@ public class ParticleAnalyzer implements IImageProcessor {
                 new Point(min_x, min_y),
                 new Point(max_x, max_y)
         };
+    }
+
+    /**
+     * Calculate contour of particle with given label.
+     *
+     * @param inData   labeled image (grayvalue)
+     * @param label_no label of particle
+     * @return length of contour. -1 if no particle with given label has been found.
+     */
+    private int calculateContour(ImageData inData, int label_no) {
+        int start_u = -1, start_v = -1;
+
+        for (int v = 1; v < inData.height - 1; v++) {
+            for (int u = 1; u < inData.width - 1; u++) {
+                if (inData.getPixel(u, v) == label_no) {
+                    start_u = u;
+                    start_v = v;
+                }
+            }
+        }
+
+        if (start_u == -1 || start_v == -1) {
+            return -1;
+        }
+
+        int contour_length = 0;
+
+        //TODO contour
+
+        return contour_length;
+    }
+
+    /**
+     * Berechnet die Orientierung (Winkel zu Hauptachse, G.u.s)
+     * Theta 0 = 0.5 * atan((2*mu11) / (mu20 - mu02))
+     *
+     * @param mu11 zentrales Moment mu11
+     * @param mu20 zentrales Moment mu20
+     * @param mu02 zentrales Moment mu02
+     * @return Winkel zwischen Hauptachse (x bzw. u) und Vektor der grössten Ausdehnung des Parikels.
+     */
+    private double calculateOrientation(double mu11, double mu20, double mu02) {
+        double input_atan = (2 * mu11) / (mu20 - mu02);
+        return Math.toDegrees(0.5 * Math.atan(input_atan));
     }
 
     /**

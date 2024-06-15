@@ -27,7 +27,7 @@ public class ParticleAnalyzer implements IImageProcessor {
     public ImageData run(ImageData inData, int imageType) {
         Object[] op = {"True", "False"};
         int option = OptionPane.showOptionDialog("Small values (darker pixels) are foreground?", SWT.ICON_INFORMATION, op, 1);
-        if(option == 0) {
+        if (option == 0) {
             smallValuesAreForeground = true;
         } else {
             smallValuesAreForeground = false;
@@ -43,18 +43,20 @@ public class ParticleAnalyzer implements IImageProcessor {
         // Flächen (Nulltes Moment M00)
         int[] areas = new int[n_labels];
         Point[] centers = new Point[n_labels];
+        double[] eccentricities = new double[n_labels];
         for (int i = 0; i < n_labels; i++) {
-            int[] values = calculateM00(labeled_image, i + 2);
-            areas[i] = values[0];
+            int[] geometric_moments = calculateMoments(labeled_image, i + 2);
+            areas[i] = geometric_moments[0];
 
             // Schwerpunkte (Erstes Moment M10 und M01)
-            int x_center = values[1] / values[0];
-            int y_center = values[2] / values[0];
-            centers[i] = new Point(x_center, y_center); // rounded center point
+            double u_center = geometric_moments[1] / geometric_moments[0];
+            double v_center = geometric_moments[2] / geometric_moments[0];
+            centers[i] = new Point((int) u_center, (int) v_center); // rounded center point
+
+            // Exzentrizität
+            double[] centralMoments = calculateCentralMoments(labeled_image, i + 2, u_center, v_center);
+            eccentricities[i] = calculateEccentricity(centralMoments);
         }
-
-        // Exzentrizität
-
 
         // Bounding box
         ImageData out = convertGrayToRGB(labeled_image);
@@ -67,19 +69,21 @@ public class ParticleAnalyzer implements IImageProcessor {
 
         String output_header =
                 """
-                        | Label | Schwerpunkt (u, v) | Bounding Box (u_min, v_min) (u_max, v_max) | Flaeche (px) | Exzentrizitaet |
-                        |-------|--------------------|--------------------------------------------|--------------|----------------|""";
+                        | Label | Schwerpunkt (u, v) | Bounding Box                  | Flaeche (px) | Exzentrizitaet |
+                        |       |                    | (u_min, v_min):(u_max, v_max) |              |                |
+                        |-------|--------------------|-------------------------------|--------------|----------------|""";
         System.out.println(output_header);
 
         for (int i = 0; i < n_labels; i++) {
-            int l_center = String.format( " (%d,%d)", centers[i].x, centers[i].y).length();
+            int l_center = String.format(" (%d,%d)", centers[i].x, centers[i].y).length();
+            int l_bb = String.format("(%d,%d):(%d,%d)", bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y).length();
 
-            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d) | %-12d | %s |\n",
+            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s |\n",
                     i + 2,
                     centers[i].x, centers[i].y, "",
-                    bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y,
+                    bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y, "",
                     areas[i],
-                    "Placeholder");
+                    eccentricities[i], "");
         }
 
 
@@ -87,30 +91,103 @@ public class ParticleAnalyzer implements IImageProcessor {
     }
 
     /**
-     * Calculate the aread of a particle
-     * @param inData labeled grayscale image
+     * Calculate the moments of a particle
+     * <p>
+     * Geometrische Momente M_pq: ∑v ∑u u^p * v^q * I(u,v)
+     * <p>
+     * Intensität wird vernachlässigt da diese als 1 genommen wird (pseudo-binärbild).
+     * (Eigentlich ist diese gleich dem Label)
+     *
+     * @param inData      labeled grayscale image
      * @param label_value value of which label the area should be calculated
-     * @return array of m00, m10 and m01
+     * @return array of moments m00, m10, m01
      */
-    private int[] calculateM00(ImageData inData, int label_value) {
+    private int[] calculateMoments(ImageData inData, int label_value) {
         int m00 = 0;
         int m10 = 0;
         int m01 = 0;
+        int m11 = 0;
+        int m20 = 0;
+        int m02 = 0;
+
         for (int v = 0; v < inData.height; v++) {
             for (int u = 0; u < inData.width; u++) {
                 if (inData.getPixel(u, v) == label_value) {
                     m00++;
                     m10 += u;
                     m01 += v;
+                    m11 += u * v;
+                    m20 += u * u;
+                    m02 += v * v;
                 }
             }
         }
 
         return new int[]{
-                m00, m10, m01
+                m00, m10, m01, m11, m20, m02
         };
     }
 
+    /**
+     * Zentrale Momente μ_pq: ∑v ∑u (u-u_center)^p*(v-v_center)^q * I(u,v)
+     * Auch hier wird die Intensität vernachlässigt.
+     *
+     * @param central_moments geometric Moments M_pq
+     * @return Array containing μ_pq
+     */
+    private double[] calculateCentralMoments(ImageData inData, int label_value, double u_center, double v_center) {
+        double mu11 = 0;
+        double mu20 = 0;
+        double mu02 = 0;
+
+        for (int v = 0; v < inData.height; v++) {
+            for (int u = 0; u < inData.width; u++) {
+                if (inData.getPixel(u, v) == label_value) {
+                    mu11 += (u - u_center) * (v - v_center);
+                    mu20 += (u - u_center) * (u - u_center);
+                    mu02 += (v - v_center) * (v - v_center);
+                }
+            }
+        }
+
+        return new double[]{mu11, mu20, mu02};
+    }
+
+    /**
+     * Exzentrizität e = sqrt(1 - (b^2 / a^2))
+     * Wobei
+     *  a = major axis
+     *  b = minor axis
+     *
+     * Welche proportional zu den Wurzeln der Eigenwerten (Eigenvalues) sind.
+     *
+     * @param central_moments Array contianing the central moments: mu11, mu20 and mu02
+     * @return
+     */
+    private double calculateEccentricity(double[] central_moments) {
+        double mu11 = central_moments[0];
+        double mu20 = central_moments[1];
+        double mu02 = central_moments[2];
+
+        double trace = mu20 + mu02;
+        double determinant = mu20 * mu02 - mu11 * mu11;
+        double sqrt = Math.sqrt((trace / 2.0) * (trace / 2.0) - determinant);
+        double eigenvalue1 = (trace / 2.0) + sqrt;
+        double eigenvalue2 = (trace / 2.0) - sqrt;
+
+        double a = Math.sqrt(eigenvalue1);
+        double b = Math.sqrt(eigenvalue2);
+
+        return Math.sqrt(1 - (b * b) / (a * a));
+    }
+
+    /**
+     * Determine bounding box by lowest point (upper left) and highest point (lower right)
+     *
+     * @param inData labeled image
+     * @param label_no number of label which bounding box should be determined.
+     * @return size 2 array, containing lowest (x,y) and highest (x,y) value/point
+     */
     private Point[] drawBoundingBox(ImageData inData, int label_no) {
         RGB rgb_value_label = new RGB(label_no, label_no, label_no);
         int min_x = inData.width;
@@ -142,7 +219,7 @@ public class ParticleAnalyzer implements IImageProcessor {
             inData.setPixel(max_x, v, bb_color); // Right
         }
 
-        return new Point[] {
+        return new Point[]{
                 new Point(min_x, min_y),
                 new Point(max_x, max_y)
         };

@@ -44,7 +44,7 @@ public class ParticleAnalyzer implements IImageProcessor {
         int[] areas = new int[n_labels];
         Point[] centers = new Point[n_labels];
         double[] eccentricities = new double[n_labels];
-        int[] contours = new int[n_labels];
+        double[] contours = new double[n_labels];
         double[] orientations = new double[n_labels];
         for (int i = 0; i < n_labels; i++) {
             int[] geometric_moments = calculateMoments(labeled_image, i + 2);
@@ -86,7 +86,7 @@ public class ParticleAnalyzer implements IImageProcessor {
             int l_center = String.format(" (%d,%d)", centers[i].x, centers[i].y).length();
             int l_bb = String.format("(%d,%d):(%d,%d)", bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y).length();
 
-            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s | (%d):(%.2f) | %.4f |\n",
+            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s | (%.2f):(%.2f) | %.4f |\n",
                     i + 2,
                     centers[i].x, centers[i].y, "",
                     bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y, "",
@@ -231,7 +231,7 @@ public class ParticleAnalyzer implements IImageProcessor {
      * @param label_no label of particle
      * @return length of contour. -1 if no particle with given label has been found.
      */
-    private int calculateContour(ImageData inData, int label_no) {
+    private double calculateContour(ImageData inData, int label_no) {
         int start_u = -1, start_v = -1;
 
         for (int v = 1; v < inData.height - 1; v++) {
@@ -247,9 +247,27 @@ public class ParticleAnalyzer implements IImageProcessor {
             return -1;
         }
 
-        int contour_length = 0;
+        double contour_length = 0;
 
-        //TODO contour
+        //Contourfidung mittels 8er Nachbarschaft
+        final int[] neighbour_u = {1, 1, 0, -1, -1, -1, 0, 1};
+        final int[] neighbour_v = {0, 1, 1, 1, 0, -1, -1, -1};
+        final double[] WEIGHTS = {1, Math.sqrt(2), 1, Math.sqrt(2), 1, Math.sqrt(2), 1, Math.sqrt(2)};
+
+        boolean[][] visited = new boolean[inData.width][inData.height];
+        Queue<Point> queue = new LinkedList<>();
+        queue.add(new Point(start_u, start_v));
+        visited[start_u][start_v] = true;
+
+        // directions
+        // 0 1 2
+        // 3 4 5
+        // 6 7 8
+        int direction_prev = 7;
+
+        while (!queue.isEmpty()) {
+            //TODO
+        }
 
         return contour_length;
     }

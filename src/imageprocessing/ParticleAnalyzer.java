@@ -14,9 +14,23 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 
+/**
+ * Particle analyzer that analyzes gray-value pictures for particles.
+ * Labels each individual particle and calculates different moments.
+ *
+ * Calculated values/moments: Centroid, Boundingbox, Area, Eccentricity,
+ *                            Contour (normal and corrected), Orientation, Compactness/Roundness.
+ *
+ * Additionally draws the contour in a darker gray around the particles, draws the centroid pixel (rounded)
+ *     and the bounding box.
+ *
+ *
+ * @author Denis Kai Wilhelm
+ */
 public class ParticleAnalyzer implements IImageProcessor {
     boolean smallValuesAreForeground = false;   // Please assign true or false accordingly
     final int bb_color = Color.BLUE.getRGB();    //Bounding box color
+    final int contour_color = 120;  // gray value contour colour
 
     @Override
     public boolean isEnabled(int imageType) {
@@ -91,17 +105,19 @@ public class ParticleAnalyzer implements IImageProcessor {
         for (int i = 0; i < n_labels; i++) {
             int l_center = String.format(" (%d,%d)", centers[i].x, centers[i].y).length();
             int l_bb = String.format("(%d,%d):(%d,%d)", bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y).length();
+            int l_con = String.format(" (%.2f):(%.2f) ", contours[i], (float) contours[i] * 0.95).length();
+            int l_or = String.format("%.4f", orientations[i]).length();
 
-            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s | (%.2f):(%.2f) | %.4f | %.4f | %.4f |\n",
+            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s | (%.2f):(%.2f)%-" + (23 - l_con) + "s | %.4f%-" + (12 - l_or) + "s | %.4f%-2s | %.4f%-6s |\n",
                     i + 2,
                     centers[i].x, centers[i].y, "",
                     bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y, "",
                     areas[i],
                     eccentricities[i], "",
-                    contours[i], (float) contours[i] * 0.95,
-                    orientations[i],
-                    compactness[i],
-                    compactness_corr[i]);
+                    contours[i], (float) contours[i] * 0.95, "",
+                    orientations[i], "",
+                    compactness[i], "",
+                    compactness_corr[i], "");
         }
 
         return out;
@@ -217,8 +233,8 @@ public class ParticleAnalyzer implements IImageProcessor {
         }
 
         // Da das Kontur einfärben die Pixel verändert, muss bei den Koordinaten:
-        // minimum -1 und
-        // maximum +1 gerechnet werden
+        // minimum je -1 und
+        // maximum je +1 gerechnet werden
         min_x--;
         min_y--;
         max_x++;
@@ -270,7 +286,7 @@ public class ParticleAnalyzer implements IImageProcessor {
 
         Queue<Point> queue = new LinkedList<>();
         queue.add(new Point(start_u, start_v));
-        inData.setPixel(start_u, start_v, 180);
+        inData.setPixel(start_u, start_v, contour_color);
 
         // directions
         // 1 2 3
@@ -284,7 +300,7 @@ public class ParticleAnalyzer implements IImageProcessor {
         final int[][] d_5 = {{1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}};
         final int[][] d_6 = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
         final int[][] d_7 = {{1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0}};
-        int direction_prev = 4; // for-loops ran row to row, left to right
+        int direction_prev = 4; // initial for-loops ran row to row, left to right
 
         while (!queue.isEmpty()) {
             Point curr = queue.poll();
@@ -341,7 +357,7 @@ public class ParticleAnalyzer implements IImageProcessor {
 
                 if (inData.getPixel(rel_u, rel_v) == label_no) {
                     queue.add(new Point(rel_u, rel_v));
-                    inData.setPixel(rel_u, rel_v, 180);
+                    inData.setPixel(rel_u, rel_v, contour_color);
 
                     if (even) {
                         // add 1 to contour if 0,2,4,6

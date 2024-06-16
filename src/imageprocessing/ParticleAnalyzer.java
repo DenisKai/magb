@@ -165,7 +165,8 @@ public class ParticleAnalyzer implements IImageProcessor {
      * Zentrale Momente μ_pq: ∑v ∑u (u-u_center)^p*(v-v_center)^q * I(u,v)
      * Auch hier wird die Intensität vernachlässigt.
      *
-     * @param central_moments geometric Moments M_pq
+     * @param u_center x-coordinate of center from particle
+     * @param v_center y-coordinate of center from particle
      * @return Array containing μ_pq
      */
     private double[] calculateCentralMoments(ImageData inData, int label_value, double u_center, double v_center) {

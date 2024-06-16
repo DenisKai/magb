@@ -45,6 +45,8 @@ public class ParticleAnalyzer implements IImageProcessor {
         Point[] centers = new Point[n_labels];
         double[] eccentricities = new double[n_labels];
         double[] contours = new double[n_labels];
+        double[] compactness = new double[n_labels];
+        double[] compactness_corr = new double[n_labels];
         double[] orientations = new double[n_labels];
         for (int i = 0; i < n_labels; i++) {
             int[] geometric_moments = calculateMoments(labeled_image, i + 2);
@@ -62,6 +64,10 @@ public class ParticleAnalyzer implements IImageProcessor {
             // Kontur
             contours[i] = calculateContour(labeled_image, i + 2);
 
+            // Kompaktheit / Rundheit mit korrigiertem Umfang
+            compactness[i] = (4 * Math.PI * areas[i]) / (contours[i] * contours[i]);
+            compactness_corr[i] = (4 * Math.PI * areas[i]) / ((contours[i] * 0.95) * (contours[i] * 0.95));
+
             // Orientation
             orientations[i] = calculateOrientation(centralMoments[0], centralMoments[1], centralMoments[2]);
         }
@@ -77,23 +83,25 @@ public class ParticleAnalyzer implements IImageProcessor {
 
         String output_header =
                 """
-                        | Label | Schwerpunkt (u, v) | Bounding Box                  | Flaeche (px) | Exzentrizitaet | Kontur (px)           | Orientierung |
-                        |       |                    | (u_min, v_min):(u_max, v_max) |              |                | (normal):(korrigiert) | (in Grad)    |
-                        |-------|--------------------|-------------------------------|--------------|----------------|-----------------------|--------------|""";
+                        | Label | Schwerpunkt (u, v) | Bounding Box                  | Flaeche (px) | Exzentrizitaet | Kontur (px)           | Orientierung | Rundheit | Rundheit     |
+                        |       |                    | (u_min, v_min):(u_max, v_max) |              |                | (normal):(korrigiert) | (in Grad)    |          | (korrigiert) |
+                        |-------|--------------------|-------------------------------|--------------|----------------|-----------------------|--------------|----------|--------------|""";
         System.out.println(output_header);
 
         for (int i = 0; i < n_labels; i++) {
             int l_center = String.format(" (%d,%d)", centers[i].x, centers[i].y).length();
             int l_bb = String.format("(%d,%d):(%d,%d)", bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y).length();
 
-            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s | (%.2f):(%.2f) | %.4f |\n",
+            System.out.printf("| %-5d | (%d,%d)%-" + (19 - l_center) + "s | (%d,%d):(%d,%d)%-" + (29 - l_bb) + "s | %-12d | %.5f%-7s | (%.2f):(%.2f) | %.4f | %.4f | %.4f |\n",
                     i + 2,
                     centers[i].x, centers[i].y, "",
                     bounds[i][0].x, bounds[i][0].y, bounds[i][1].x, bounds[i][1].y, "",
                     areas[i],
                     eccentricities[i], "",
                     contours[i], (float) contours[i] * 0.95,
-                    orientations[i]);
+                    orientations[i],
+                    compactness[i],
+                    compactness_corr[i]);
         }
 
         return out;

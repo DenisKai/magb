@@ -208,6 +208,14 @@ public class ParticleAnalyzer implements IImageProcessor {
             }
         }
 
+        // Da das Kontur einfärben die Pixel verändert, muss bei den Koordinaten:
+        // minimum -1 und
+        // maximum +1 gerechnet werden
+        min_x--;
+        min_y--;
+        max_x++;
+        max_y++;
+
         // Draw the bounding box
         for (int u = min_x; u <= max_x; u++) {
             inData.setPixel(u, min_y, bb_color); // Top
@@ -234,11 +242,14 @@ public class ParticleAnalyzer implements IImageProcessor {
     private double calculateContour(ImageData inData, int label_no) {
         int start_u = -1, start_v = -1;
 
-        for (int v = 1; v < inData.height - 1; v++) {
-            for (int u = 1; u < inData.width - 1; u++) {
+        for (int v = 0; v < inData.height; v++) {
+            if (start_u != -1 && start_v != 1) break;
+
+            for (int u = 0; u < inData.width; u++) {
                 if (inData.getPixel(u, v) == label_no) {
                     start_u = u;
                     start_v = v;
+                    break;
                 }
             }
         }
@@ -249,24 +260,103 @@ public class ParticleAnalyzer implements IImageProcessor {
 
         double contour_length = 0;
 
-        //Contourfidung mittels 8er Nachbarschaft
-        final int[] neighbour_u = {1, 1, 0, -1, -1, -1, 0, 1};
-        final int[] neighbour_v = {0, 1, 1, 1, 0, -1, -1, -1};
-        final double[] WEIGHTS = {1, Math.sqrt(2), 1, Math.sqrt(2), 1, Math.sqrt(2), 1, Math.sqrt(2)};
-
-        boolean[][] visited = new boolean[inData.width][inData.height];
         Queue<Point> queue = new LinkedList<>();
         queue.add(new Point(start_u, start_v));
-        visited[start_u][start_v] = true;
+        inData.setPixel(start_u, start_v, 180);
 
         // directions
-        // 0 1 2
-        // 3 4 5
-        // 6 7 8
-        int direction_prev = 7;
+        // 1 2 3
+        // 0 X 4
+        // 7 6 5
+        final int[][] d_0 = {{0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}};
+        final int[][] d_1 = {{-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}};
+        final int[][] d_2 = {{-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}};
+        final int[][] d_3 = {{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}};
+        final int[][] d_4 = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
+        final int[][] d_5 = {{1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}};
+        final int[][] d_6 = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
+        final int[][] d_7 = {{1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {1, 0}};
+        int direction_prev = 4; // for-loops ran row to row, left to right
 
         while (!queue.isEmpty()) {
-            //TODO
+            Point curr = queue.poll();
+
+            int[][] rel_direction = {};
+
+            switch (direction_prev) {
+                case 0:
+                    rel_direction = d_0;
+                    break;
+                case 1:
+                    rel_direction = d_1;
+                    break;
+                case 2:
+                    rel_direction = d_2;
+                    break;
+                case 3:
+                    rel_direction = d_3;
+                    break;
+                case 4:
+                    rel_direction = d_4;
+                    break;
+                case 5:
+                    rel_direction = d_5;
+                    break;
+                case 6:
+                    rel_direction = d_6;
+                    break;
+                case 7:
+                    rel_direction = d_7;
+                    break;
+                default:
+                    System.out.println("no direction matrix...");
+                    break;
+            }
+
+            int initial_direction = direction_prev - 2;
+            if (initial_direction < 0) {
+                initial_direction = (initial_direction + 8) % 8;
+            }
+            int current_direction = initial_direction;
+
+
+            // if previous direction is even -> 0,2,4,6 are vertical/horizontal
+            // if previous direction is odd -> 1,3,5,7 are vertical/horizontal
+            boolean even = (direction_prev % 2 == 0);
+
+            for (int i = 0; i < rel_direction.length; i++) {
+                int rel_u = curr.x + rel_direction[i][0];
+                int rel_v = curr.y + rel_direction[i][1];
+                if (start_u == rel_u && start_v == rel_v) {
+                    break; // Umrundung abgeschlossen
+                }
+
+                if (inData.getPixel(rel_u, rel_v) == label_no) {
+                    queue.add(new Point(rel_u, rel_v));
+                    inData.setPixel(rel_u, rel_v, 180);
+
+                    if (even) {
+                        // add 1 to contour if 0,2,4,6
+                        if (current_direction % 2 == 0) {
+                            contour_length++;
+                        } else {
+                            contour_length += Math.sqrt(2);
+                        }
+                    } else {
+                        // add 1 to contour if 1,3,5,7
+                        if (current_direction % 2 == 1) {
+                            contour_length++;
+                        } else {
+                            contour_length += Math.sqrt(2);
+                        }
+                    }
+
+                    direction_prev = current_direction;
+                    break;
+                } else {
+                    current_direction = ((current_direction + 1) % 8);
+                }
+            }
         }
 
         return contour_length;

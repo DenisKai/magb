@@ -1,7 +1,9 @@
 package gui;
 
+import files.Raw;
 import imageprocessing.Binarization;
 import imageprocessing.Cropping;
+import imageprocessing.Debayering;
 import imageprocessing.FloodFilling;
 import imageprocessing.HoughTransform;
 import imageprocessing.MorphologicFilter;
@@ -36,6 +38,7 @@ public class ImageMenu extends UserMenu {
         add("&Invert\tF1", SWT.F1, new Inverter());
 
         // TODO add here further image processing entries (they are inserted into the Image menu)
+        /*
         add("&Grayscaler\tF2", SWT.F2, new GrayValue());
         add("&Binary\tF3", SWT.F3, new Binarization());
         add("&Rotation\tF4", SWT.F4, new Rotation());
@@ -45,6 +48,7 @@ public class ImageMenu extends UserMenu {
         add("&Morphological\tF8", SWT.F8, new MorphologicFilter());
         add("&Houghtransform\tF9", SWT.F9, new HoughTransform());
         add("&Particleanalyzer\tF10", SWT.F10, new ParticleAnalyzer());
+         */
 
         UserMenu channels = addMenu("Channel");
         channels.add("R\tCtrl+1", SWT.CTRL | '1', new ChannelRGBA(0));
@@ -52,5 +56,8 @@ public class ImageMenu extends UserMenu {
         channels.add("B\tCtrl+3", SWT.CTRL | '3', new ChannelRGBA(2));
         channels.add("A\tCtrl+4", SWT.CTRL | '4', new ChannelRGBA(3));
 
+        channels = addMenu("Bayering");
+        channels.add("&Debayering\tF2", SWT.F2, new Debayering());
+        //channels.add("&---\tF3", SWT.F3, new Debayering());
     }
 }

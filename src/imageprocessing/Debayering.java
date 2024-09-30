@@ -180,9 +180,8 @@ public class Debayering implements IImageProcessor {
         Parallel.For(0, outData.height, v -> {
             RGB rgb = new RGB(0, 0, 0);
 
-            //TODO blue -> one line will be B G B G B G..... (=> lines 0, 2, 4, ....)
+            //TODO implement advanced method
 
-            //TODO red	-> G R G R G R (=> lines 1, 3, 5, 7, ....)
 
             for (int u = 0; u < outData.width; u++) {
                 outData.setPixel(u, v, outData.palette.getPixel(rgb));

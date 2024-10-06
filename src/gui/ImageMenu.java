@@ -1,19 +1,10 @@
 package gui;
 
-import files.Raw;
-import imageprocessing.Binarization;
 import imageprocessing.Cropping;
 import imageprocessing.Debayering;
-import imageprocessing.FloodFilling;
-import imageprocessing.HoughTransform;
-import imageprocessing.MorphologicFilter;
-import imageprocessing.ParticleAnalyzer;
-import imageprocessing.RotateAndZoom;
-import imageprocessing.Rotation;
-import imageprocessing.Scaling;
+import imageprocessing.PatternMatching;
 import imageprocessing.colors.ChannelRGBA;
 import imageprocessing.colors.Inverter;
-import imageprocessing.grayValueConverter.GrayValue;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MenuItem;
 
@@ -58,6 +49,8 @@ public class ImageMenu extends UserMenu {
 
         channels = addMenu("Bayering");
         channels.add("&Debayering\tF2", SWT.F2, new Debayering());
+
+        add("&Patternmatching\tF3", SWT.F3, new PatternMatching());
         //channels.add("&---\tF3", SWT.F3, new Debayering());
     }
 }

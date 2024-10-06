@@ -162,13 +162,15 @@ public class Huffman implements IImageFile {
             Node root = createHuffmanTree(hist, codes, size);
             BitSet data = encodeImage(imageData, codes);
 
+            // Header abspeichern
+            out.writeInt(w);
+            out.writeInt(h);
 
-            // TODO Header abspeichern
+            // Codebaum abspeichern
+            out.writeObject(root);
 
-            // TODO Codebaum abspeichern
-
-            // TODO komprimierte Bilddaten abspeichern
-
+            // komprimierte Bilddaten abspeichern
+            out.writeObject(data);
         } finally {
             out.close();
         }
@@ -185,29 +187,75 @@ public class Huffman implements IImageFile {
     private Node createHuffmanTree(int[] hist, Leaf[] codes, int size) {
         PriorityQueue<Node> pq = new PriorityQueue<Node>(hist.length);
 
-        // TODO Wahrscheinlichkeiten und Entropie berechnen und neue Blattknoten erzeugen (die Blattknoten sowohl in die Code-Tabelle als auch in die PQ einf�gen)
-        float[] p_hist = new float[hist.length];
+        // Wahrscheinlichkeiten (p_i) und Entropie (H) berechnen
+        double[] p_hist = new double[hist.length];
         for (int i = 0; i < hist.length; i++) {
-            p_hist[i] = (float) hist[i] / size;
+            p_hist[i] = (double) hist[i] / size;
+
+            // Blattknoten erzeugen (die Blattknoten sowohl in die Code-Tabelle als auch in die PQ einf�gen)
+            if (p_hist[i] > 0) {
+                Leaf p_i = new Leaf(p_hist[i], (byte) hist[i]);
+                codes[i] = p_i;
+                pq.add(p_i);
+            }
         }
 
         float H = 0;
         for (int i = 0; i < p_hist.length; i++) {   // K = Histogram length
-            H += p_hist[i] * Math.log(p_hist[i]) / Math.log(2); // log-change: log_2(x) -> log(x)/log(2)
+            if (p_hist[i] > 0) {
+                H += p_hist[i] * (Math.log(p_hist[i]) / Math.log(2)); // log-change: log_2(x) -> log(x)/log(2)
+            }
         }
         H *= -1;
-        System.out.println(H);
 
+        // Mittlere Codelaenge (S) und Datei-Speicherbedarf (Nb) mithilfe der Entropie abschaetzen (Unter- und Obergrenze) und auf der Konsole ausgeben
+        int Na = size;
+        float Nb_low = Na * H;
+        int Nb_high = (int) (Na * Math.ceil(H));
+        float S_low = Nb_low / Na;
+        int S_high = Nb_high / Na;
+        System.out.println("Mittlere Codelaenge (low): " + S_low + " bit");
+        System.out.println("Mittlere Codelaenge (high): " + S_high + " Bit");
+        System.out.println("Datenmenge Untergrenze: " + Nb_low + " bit");
+        System.out.println("Datenmenge Obergrenze: " + Nb_high + " Bit");
 
-        // TODO Mittlere Codel�nge und Datei-Speicherbedarf mithilfe der Entropie absch�tzen (Unter- und Obergrenze) und auf der Konsole ausgeben
+        // Codebaum aufbauen: Verwenden Sie die pq, um die zwei jeweils kleinsten Nodes zu holen
+        while (pq.size() > 1) {
+            Node left = pq.poll();
+            Node right = pq.poll();
+            Node unified = new Node(left, right);
+            pq.add(unified);
+        }
 
-        // TODO Codebaum aufbauen: Verwenden Sie die pq, um die zwei jeweils kleinsten Nodes zu holen
+        // Wurzelknoten holen und mittels Funktionsaufruf alle Codes rekursiv erzeugen
+        if (pq.peek() == null) return null;
+        pq.peek().setCode(0, 0);
 
-        // TODO Wurzelknoten holen und mittels Funktionsaufruf alle Codes rekursiv erzeugen
+        // Mittlere Codelaenge und Datei-Speicherbedarf berechnen und auf der Konsole ausgeben
+        Node root = pq.poll();
+        double S_huf = calculateAverageCodeLength(root);
+        System.out.println("Mittlere Codelaenge Huffman: " + S_huf);
+        System.out.println("Speicherbedarf Huffman: " + S_huf * Na);
 
-        // TODO Mittlere Codel�nge und Datei-Speicherbedarf berechnen und auf der Konsole ausgeben
+        return root;
+    }
 
-        return null; //root;
+    /**
+     * Calculate average codelength
+     *
+     * @param root root node of huffman tree
+     * @return returning average length of code
+     */
+    private double calculateAverageCodeLength(Node root) {
+        if (root == null) {
+            return 0;
+        }
+
+        if (root.m_left == null && root.m_right == null) {  // only get codes from leaf nodes
+            return root.m_p * root.m_codeLen;
+        } else {
+            return calculateAverageCodeLength(root.m_left) + calculateAverageCodeLength(root.m_right);
+        }
     }
 
     /**
@@ -221,8 +269,28 @@ public class Huffman implements IImageFile {
         final int w = outData.width;
         final int h = outData.height;
         BitSet bs = new BitSet();
+        int bitIndex = 0;
 
-        // TODO alle Pixel der Reihe nach codieren und im bs abspeichern
+        // Alle Pixel der Reihe nach codieren und im bs abspeichern
+        for (int v = 0; v < h; v++) {
+            for (int u = 0; u < w; u++) {
+                int pixel_intensity = outData.getPixel(u, v);
+                Leaf code = codes[pixel_intensity];
+
+                // Check if we have a code for this intensity
+                if (code != null) {
+                    long hufCode = code.getCode();
+                    int length = code.getCodeLen();
+
+                    // Write the Huffman code to the BitSet
+                    for (int i = 0; i < length; i++) {
+                        bs.set(bitIndex++, (hufCode & (1L << (length - i - 1))) != 0);
+                    }
+                } else {
+                    System.err.println("Error: No Huffman code found for intensity " + pixel_intensity);
+                }
+            }
+        }
 
         return bs;
     }

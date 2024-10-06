@@ -165,28 +165,8 @@ public class Debayering implements IImageProcessor {
     private ImageData debayering2(ImageData inData) {
         ImageData outData = ImageProcessing.createImage(inData.width, inData.height, Picsi.IMAGE_TYPE_RGB);
 
-        // interpolation of green channel
-        Parallel.For(0, outData.height, v -> {
-            RGB rgb = new RGB(0, 0, 0);
+        // TODO complex debayering
 
-            //TODO green
-
-            for (int u = 0; u < outData.width; u++) {
-                outData.setPixel(u, v, outData.palette.getPixel(rgb));
-            }
-        });
-
-        // interpolation of blue and red channels
-        Parallel.For(0, outData.height, v -> {
-            RGB rgb = new RGB(0, 0, 0);
-
-            //TODO implement advanced method
-
-
-            for (int u = 0; u < outData.width; u++) {
-                outData.setPixel(u, v, outData.palette.getPixel(rgb));
-            }
-        });
         return outData;
     }
 

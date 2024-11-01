@@ -2,6 +2,7 @@ package gui;
 
 import imageprocessing.Cropping;
 import imageprocessing.Debayering;
+import imageprocessing.GaussianFilter;
 import imageprocessing.PatternMatching;
 import imageprocessing.colors.ChannelRGBA;
 import imageprocessing.colors.Inverter;
@@ -51,6 +52,7 @@ public class ImageMenu extends UserMenu {
         channels.add("&Debayering\tF2", SWT.F2, new Debayering());
 
         add("&Patternmatching\tF3", SWT.F3, new PatternMatching());
+        add("&Gaussianblur\tF4", SWT.F4, new GaussianFilter());
         //channels.add("&---\tF3", SWT.F3, new Debayering());
     }
 }

@@ -20,6 +20,7 @@ public class GaussianFilter implements IImageProcessor {
     }
 
     private ImageData gaussian(int sigma, ImageData in) {
+        ImageData intermediate = (ImageData) in.clone();
         ImageData out = (ImageData) in.clone();
 
         // create gaussian 1D-filter
@@ -27,8 +28,8 @@ public class GaussianFilter implements IImageProcessor {
         int center = (int) Math.ceil(filter.length / 2f);
 
         // Horizontal run of image
-        Parallel.For(0, out.height, v -> {
-            for (int u = 0; u < out.width; u++) {
+        Parallel.For(0, intermediate.height, v -> {
+            for (int u = 0; u < intermediate.width; u++) {
                 // calculate gaussian-sum for each pixel
                 float sum = 0f;
                 for (int i = 0; i < filter.length; i++) {
@@ -42,22 +43,22 @@ public class GaussianFilter implements IImageProcessor {
                 }
 
                 sum = ImageProcessing.clamp8(sum);
-                out.setPixel(u, v, (int) sum);
+                intermediate.setPixel(u, v, (int) sum);
             }
         });
 
         // Vertical run of image (using intermediate out-pixel-values from horizontal run)
-        Parallel.For(0, out.width, u -> {
-            for (int v = 0; v < out.height; v++) {
+        Parallel.For(0, intermediate.width, u -> {
+            for (int v = 0; v < intermediate.height; v++) {
                 float sum = 0;
                 for (int i = 0; i < filter.length; i++) {
                     int offset = i - center;
 
                     // Edge-cases: v + offset < 0 || v + offset >= height
-                    if (v + offset < 0 || v + offset >= out.height) {
-                        sum += out.getPixel(u, v) * filter[i];
+                    if (v + offset < 0 || v + offset >= intermediate.height) {
+                        sum += intermediate.getPixel(u, v) * filter[i];
                     } else {
-                        sum += out.getPixel(u, v + offset) * filter[i];
+                        sum += intermediate.getPixel(u, v + offset) * filter[i];
                     }
                 }
 

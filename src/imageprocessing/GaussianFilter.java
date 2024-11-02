@@ -19,7 +19,7 @@ public class GaussianFilter implements IImageProcessor {
         return gaussian(sigma, inData);
     }
 
-    private ImageData gaussian(int sigma, ImageData in) {
+    public static ImageData gaussian(int sigma, ImageData in) {
         ImageData intermediate = (ImageData) in.clone();
         ImageData out = (ImageData) in.clone();
 
@@ -71,7 +71,7 @@ public class GaussianFilter implements IImageProcessor {
     }
 
     // Create gaussian-filter-matrix
-    private float[] createGaussianMatrix(int sigma) {
+    private static float[] createGaussianMatrix(int sigma) {
         int size = (int) Math.ceil(5 * sigma);
         if (size % 2 == 0) size++;
 

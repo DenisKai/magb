@@ -2,6 +2,7 @@ package gui;
 
 import imageprocessing.Cropping;
 import imageprocessing.Debayering;
+import imageprocessing.EdgeDetector;
 import imageprocessing.GaussianFilter;
 import imageprocessing.MedianFilter;
 import imageprocessing.PatternMatching;
@@ -56,6 +57,8 @@ public class ImageMenu extends UserMenu {
         channels = addMenu("Filters");
         channels.add("&Gaussianblur\tF4", SWT.F4, new GaussianFilter());
         channels.add("&Median\tF5", SWT.F5, new MedianFilter());
+        channels = addMenu("Detectors");
+        channels.add("Edge Detector\tF6", SWT.F6, new EdgeDetector());
         //channels.add("&---\tF3", SWT.F3, new Debayering());
     }
 }

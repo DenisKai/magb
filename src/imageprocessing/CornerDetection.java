@@ -102,9 +102,9 @@ public class CornerDetection implements IImageProcessor {
         convolveXY(inDataF, hp, hp);
 
         // Compute derivatives
-        float[][] I_x = new float[inData.height][inData.width];
-        float[][] I_y = new float[inData.height][inData.width];
-        float[][] I_xy = new float[inData.height][inData.width];
+        float[][] I_x = new float[inData.height][inData.width]; // A
+        float[][] I_y = new float[inData.height][inData.width]; // B
+        float[][] I_xy = new float[inData.height][inData.width]; // C
 
         convolveX(inDataF, hd, I_x);    // Partial derivative I_x
         convolveY(inDataF, hd, I_y);    // Partial derivative I_y

@@ -151,4 +151,62 @@ public class EdgeDetector implements IImageProcessor {
 
         return sum;
     }
+
+    private float[][] convolveX(float[][] in, float[] filterX, float[][] out) {
+        int center = (int) Math.ceil(filterX.length / 2f);
+        float filter_sum = 0;
+        for (int i = 0; i < filterX.length; i++) {
+            filter_sum += Math.abs(filterX[i]);
+        }
+
+        for (int v = 0; v < in.length; v++) {
+            for (int u = 0; u < in[0].length; u++) {
+                float sum = 0;
+
+                for (int i = 0; i < filterX.length; i++) {
+                    int offset = i - center;
+
+                    // edge cases u + offse < 0|| u + offset >= in[0].length
+                    if (u + offset < 0 || u + offset >= in[0].length) {
+                        sum += in[v][u] * filterX[i];
+                    } else {
+                        sum += in[v][u + offset] * filterX[i];
+                    }
+                }
+
+                sum /= filter_sum;
+                out[v][u] = sum;
+            }
+        }
+        return out;
+    }
+
+    private float[][] convolveY(float[][] in, float[] filterY, float[][] out) {
+        int center = (int) Math.ceil(filterY.length / 2f);
+        int filter_sum = 0;
+        for (int i = 0; i < filterY.length; i++) {
+            filter_sum += Math.abs(filterY[i]);
+        }
+
+        for (int v = 0; v < in.length; v++) {
+            for (int u = 0; u < in[0].length; u++) {
+
+                float sum = 0;
+                for (int j = 0; j < filterY.length; j++) {
+                    int offset_v = j - center;
+                    // edge cases v + offset < 0 || v + offset >= in.length
+                    if (v + offset_v < 0 || v + offset_v >= in.length) {
+                        sum += in[v][u] * filterY[j];
+                    } else {
+                        sum += in[v + offset_v][u] * filterY[j];
+                    }
+                }
+
+                sum /= filter_sum;
+                out[v][u] = sum;
+            }
+        }
+
+        return out;
+    }
 }

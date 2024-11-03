@@ -19,7 +19,7 @@ public class EdgeDetector implements IImageProcessor {
             {0, 0, 0},
             {3, 10, 3}
     };
-    final float H_norm_factor = calculateAbsoluteSum(H_x);  // Should be 1/32
+    final float H_norm_factor = calculateAbsoluteSum(H_x);  // Should be 32
     final int intensity_offset = 128;
 
     @Override
@@ -30,8 +30,9 @@ public class EdgeDetector implements IImageProcessor {
     @Override
     public ImageData run(ImageData inData, int imageType) {
         Object[] operations = {"Horizontal", "Vertical", "Beide"};
-        int ch = OptionPane.showOptionDialog("Welche Kantten sollen ausgegeben werden?", SWT.ICON_INFORMATION, operations, 0);
+        int ch = OptionPane.showOptionDialog("Welche Kanten sollen ausgegeben werden?", SWT.ICON_INFORMATION, operations, 0);
         if (ch < 0 || ch > 2) ch = 2;
+        System.out.println(ch);
 
         if (imageType == Picsi.IMAGE_TYPE_RGB || imageType == Picsi.IMAGE_TYPE_RGBA) {
             inData = GrayValue.extractGrayValue(inData);
@@ -51,24 +52,24 @@ public class EdgeDetector implements IImageProcessor {
         int x_center = (int) Math.ceil(H_x[0].length / 2f);
         int y_center = (int) Math.ceil(H_x.length / 2f);
 
-        // Horizontal edge detection
+        // Horizontal edge detection (H_y)
         Parallel.For(0, inData.height, v -> {
             for (int u = 0; u < inData.width; u++) {
                 // edge case: u+offset_u < 0 || v+offset_v <0 || u+offset_u >= width || v+offset_v >= height
                 float sum = 0;
-                for (int i = 0; i < H_x[0].length; i++) {
-                    for (int j = 0; j < H_x.length; j++) {
-                        int u_off = i - x_center;
-                        int v_off = j - y_center;
+                for (int x = 0; x < H_y[0].length; x++) {
+                    for (int y = 0; y < H_y.length; y++) {
+                        int u_off = x - x_center;
+                        int v_off = y - y_center;
 
                         if ((u + u_off < 0 && v + v_off < 0) || (u + u_off >= inData.width && v + v_off >= inData.height)) {
-                            sum += H_x[i][j] * inData.getPixel(u, v);
+                            sum += H_y[y][x] * inData.getPixel(u, v);
                         } else if (u + u_off < 0 || u + u_off >= inData.width) {
-                            sum += H_x[i][j] * inData.getPixel(u, v + v_off);
+                            sum += H_y[y][x] * inData.getPixel(u, v + v_off);
                         } else if (v + v_off < 0 || v + v_off >= inData.height) {
-                            sum += H_x[i][j] * inData.getPixel(u + u_off, v);
+                            sum += H_y[y][x] * inData.getPixel(u + u_off, v);
                         } else {
-                            sum += H_x[i][j] * inData.getPixel(u + u_off, v + v_off);
+                            sum += H_y[y][x] * inData.getPixel(u + u_off, v + v_off);
                         }
                     }
                 }
@@ -76,13 +77,6 @@ public class EdgeDetector implements IImageProcessor {
                 horizontal_weights[u][v] = sum;
             }
         });
-
-        // Vertical edge detection
-        for (int u = 0; u < inData.width; u++) {
-            for (int v = 0; v < inData.height; v++) {
-
-            }
-        }
 
         if (edgeType == 0) {
             for (int v = 0; v < horizontal_weights[0].length; v++) {
@@ -98,30 +92,30 @@ public class EdgeDetector implements IImageProcessor {
         ImageData vertical_image = ImageProcessing.createImage(inData.width, inData.height, Picsi.IMAGE_TYPE_GRAY);
         float[][] vertical_weights = new float[inData.width][inData.height];
 
-        for (int u = 0; u < inData.width; u++) {
-            for (int v = 0; v < inData.height; v++) {
+        Parallel.For(0, inData.height, v -> {
+            for (int u = 0; u < inData.width; u++) {
                 // edge case: u+offset_u < 0 || v+offset_v <0 || u+offset_u >= width || v+offset_v >= height
                 float sum = 0;
-                for (int i = 0; i < H_y[0].length; i++) {
-                    for (int j = 0; j < H_y.length; j++) {
-                        int u_off = i - x_center;
-                        int v_off = j - y_center;
+                for (int x = 0; x < H_x[0].length; x++) {
+                    for (int y = 0; y < H_x.length; y++) {
+                        int u_off = x - x_center;
+                        int v_off = y - y_center;
 
                         if ((u + u_off < 0 && v + v_off < 0) || (u + u_off >= inData.width && v + v_off >= inData.height)) {
-                            sum += H_y[i][j] * inData.getPixel(u, v);
+                            sum += H_x[y][x] * inData.getPixel(u, v);
                         } else if (u + u_off < 0 || u + u_off >= inData.width) {
-                            sum += H_y[i][j] * inData.getPixel(u, v + v_off);
+                            sum += H_x[y][x] * inData.getPixel(u, v + v_off);
                         } else if (v + v_off < 0 || v + v_off >= inData.height) {
-                            sum += H_y[i][j] * inData.getPixel(u + u_off, v);
+                            sum += H_x[y][x] * inData.getPixel(u + u_off, v);
                         } else {
-                            sum += H_y[i][j] * inData.getPixel(u + u_off, v + v_off);
+                            sum += H_x[y][x] * inData.getPixel(u + u_off, v + v_off);
                         }
                     }
                 }
                 sum /= H_norm_factor;
                 vertical_weights[u][v] = sum;
             }
-        }
+        });
 
         if (edgeType == 1) {
             for (int v = 0; v < vertical_weights[0].length; v++) {
@@ -134,6 +128,7 @@ public class EdgeDetector implements IImageProcessor {
         }
 
 
+        // Both edge-types combined
         for (int v = 0; v < inData.height; v++) {
             for (int u = 0; u < inData.width; u++) {
                 float sum = (float) Math.sqrt((horizontal_weights[u][v] * horizontal_weights[u][v]) + (vertical_weights[u][v] * vertical_weights[u][v]));

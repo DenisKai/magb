@@ -1,5 +1,6 @@
 package gui;
 
+import imageprocessing.CornerDetection;
 import imageprocessing.Cropping;
 import imageprocessing.Debayering;
 import imageprocessing.EdgeDetector;
@@ -59,6 +60,7 @@ public class ImageMenu extends UserMenu {
         channels.add("&Median\tF5", SWT.F5, new MedianFilter());
         channels = addMenu("Detectors");
         channels.add("Edge Detector\tF6", SWT.F6, new EdgeDetector());
+        channels.add("Corner Detector\tF7", SWT.F7, new CornerDetection());
         //channels.add("&---\tF3", SWT.F3, new Debayering());
     }
 }

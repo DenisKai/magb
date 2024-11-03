@@ -20,10 +20,10 @@ public class MedianFilter implements IImageProcessor {
         int filterSize = OptionPane.showIntegerDialog("Filtergrösse (min. 3)?", 3);
         if (filterSize < 3) filterSize = 3;
 
-        return filterImage(filterSize, inData);
+        return medianFilter(filterSize, inData);
     }
 
-    private ImageData filterImage(int filterSize, ImageData in) {
+    public static ImageData medianFilter(int filterSize, ImageData in) {
         ImageData intermediate = (ImageData) in.clone();
         ImageData out = (ImageData) in.clone();
 
@@ -79,7 +79,7 @@ public class MedianFilter implements IImageProcessor {
     }
 
     // Create median 1D-Filter
-    private int[] createMedianFilter(int size) {
+    private static int[] createMedianFilter(int size) {
         if (size % 2 == 0) size++;
         int[] filter = new int[size];
         for (int i = 0; i < size; i++) {

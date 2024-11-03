@@ -125,14 +125,22 @@ public class CornerDetection implements IImageProcessor {
         convolveY(I_y, hb, I_y_g);
         convolveXY(I_xy, hb, hb);
 
-        // TODO: compute CRF (and Eigenvalues)
-        // Strukturmatrix
-        // {{I_x^2, I_xy},
-        //  {I_xy, I_y^2}}
-
-        
-
+        // Compute CRF (and Eigenvalues)
         float[][] q = new float[inData.height][inData.width];
+        // Strukturmatrix
+        // {{A, C}    =    {{I_x^2, I_xy},
+        //  {C, B}}         {I_xy, I_y^2}}
+        for (int v = 0; v < inData.height; v++) {
+            for (int u = 0; u < inData.width; u++) {
+                float M_A = I_x_g[v][u];
+                float M_B = I_y_g[v][u];
+                float M_C = I_xy[v][u];
+
+                float detM = M_A * M_B - (M_C * M_C);
+                float traceM = M_A + M_B;
+                q[v][u] = detM - alpha * (traceM * traceM);
+            }
+        }
 
         // collect corner points in parallel
         final float th = threshold;

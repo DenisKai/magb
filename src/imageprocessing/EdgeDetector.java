@@ -32,7 +32,6 @@ public class EdgeDetector implements IImageProcessor {
         Object[] operations = {"Horizontal", "Vertical", "Beide"};
         int ch = OptionPane.showOptionDialog("Welche Kanten sollen ausgegeben werden?", SWT.ICON_INFORMATION, operations, 0);
         if (ch < 0 || ch > 2) ch = 2;
-        System.out.println(ch);
 
         if (imageType == Picsi.IMAGE_TYPE_RGB || imageType == Picsi.IMAGE_TYPE_RGBA) {
             inData = GrayValue.extractGrayValue(inData);
